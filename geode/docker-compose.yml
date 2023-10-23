@@ -1,0 +1,75 @@
+version: '3'
+
+services:
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ../nginx/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - spring-app-1
+      - spring-app-2
+      - spring-app-3
+      - locator
+      - server
+
+  spring-app-1:
+    image: benchmarking-geode
+    depends_on:
+      - locator
+      - server
+
+  spring-app-2:
+    image: benchmarking-geode
+    depends_on:
+      - locator
+      - server
+
+
+  spring-app-3:
+    image: benchmarking-geode
+    depends_on:
+      - locator
+      - server
+
+
+  locator:
+    image: apachegeode/geode:latest
+    hostname: locator
+    expose:
+     - "10334"
+     - "1099"
+     - "7575"
+    ports:
+     - "1099:1099"
+     - "10334:10334"
+     - "7575:7575"
+     - "7070:7070"
+    volumes:
+     - ./scripts/:/scripts/
+    command: /scripts/gfshWrapper.sh gfsh start locator --name=locator --mcast-port=0
+
+  server:
+    image: apachegeode/geode:latest
+    expose:
+     - "8080"
+     - "40404"
+     - "1099"
+    ports:
+     - "40404"
+    volumes:
+     - ./scripts/:/scripts/
+    command: /scripts/startServer.sh --server-port=40404
+    depends_on:
+      - locator
+
+  terminal-container:
+    image: apachegeode/geode:latest
+    volumes:
+      - ./scripts/:/scripts/
+    command: [ "sh", "-c", "chmod +x /scripts/commands.sh && /scripts/commands.sh" ]
+    depends_on:
+      - locator
+      - server
+
